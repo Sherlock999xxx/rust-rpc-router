@@ -166,10 +166,49 @@ Primary execution methods:
 - `call_route(id, method, params)`
 - `call_route_with_resources(id, method, params, Resources)`
 
+Terminology:
+
+- Base resources are the router-wide resources attached to the `Router` itself, usually through `RouterBuilder`.
+- Overlay resources are the call-local `Resources` values passed to `call_with_resources` or `call_route_with_resources`.
+- When the same resource type exists in both places, overlay lookup takes precedence over base lookup.
+
 Behavior notes:
 
 - Resource lookup checks overlay resources first, then router base resources.
 - `call_route` and `call_route_with_resources` default `id` to `RpcId::Null` when passed `None`.
+
+Example:
+
+```rust
+use rpc_router::{Resources, Router, RouterBuilder, RpcId, RpcRequest, RpcResource};
+use serde_json::json;
+
+#[derive(Clone, RpcResource)]
+struct AppName(String);
+
+#[derive(Clone, RpcResource)]
+struct RequestScopedUser(String);
+
+let router = RouterBuilder::default()
+    .append_resource(AppName("rpc-router".to_string()))
+    .build();
+
+let overlay_resources = Resources::builder()
+    .append(RequestScopedUser("alice".to_string()))
+    .build();
+
+let request = RpcRequest::new(
+    RpcId::from(1_i64),
+    "whoami",
+    Some(json!({"verbose": true})),
+);
+
+let _call_result = router
+    .call_with_resources(request, overlay_resources)
+    .await;
+```
+
+In this pattern, the router keeps stable base resources, while each call can supply temporary overlay resources built with `Resources::builder().append(...).build()`.
 
 ### `RouterBuilder`
 
@@ -198,6 +237,34 @@ Type-safe container for shared state.
 
 Lookup checks overlay resources first, then base resources.
 
+Terminology:
+
+- A base resource is stored in the router and is available to every call.
+- An overlay resource is created for a specific call and temporarily layered on top of the base resources.
+- If both layers contain the same type, `get<T>()` returns the overlay value.
+
+Example:
+
+```rust
+use rpc_router::{Resources, RpcResource};
+
+#[derive(Clone, RpcResource)]
+struct AppVersion(&'static str);
+
+#[derive(Clone, RpcResource)]
+struct RequestId(&'static str);
+
+let base_resources = Resources::builder()
+    .append(AppVersion("1.0.0"))
+    .build();
+
+let overlay_resources = Resources::builder()
+    .append(RequestId("req-123"))
+    .build();
+
+let _ = (base_resources, overlay_resources);
+```
+
 ### `ResourcesBuilder`
 
 Mutable builder for constructing `Resources`.
@@ -206,6 +273,16 @@ Mutable builder for constructing `Resources`.
 - `append_mut(T)`
 - `get<T>()`
 - `build()`
+
+Common overlay construction pattern:
+
+```rust
+use rpc_router::Resources;
+
+let call_resources = Resources::builder()
+    .append("request-local value".to_string())
+    .build();
+```
 
 ## Router Call Results
 

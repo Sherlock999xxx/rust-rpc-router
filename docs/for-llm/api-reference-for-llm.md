@@ -51,9 +51,18 @@ The main executor. Usually wrapped in `Arc`.
 - `call_route(id, method, params)`: Lower level call.
 - `call_route_with_resources(id, method, params, Resources)`: Lower level call with overlaid resources.
 
+Terminology notes:
+- Base resources: router-wide resources attached to the `Router`.
+- Overlay resources: call-local `Resources` passed for one execution.
+- If the same resource type exists in both, overlay wins.
+
 Behavior notes:
 - Resource lookup checks overlay resources first, then router base resources.
 - `call_route` and `call_route_with_resources` default `id` to `RpcId::Null` when passed `None`.
+
+Typical overlay construction:
+- Build per-call resources with `Resources::builder().append(...).build()`.
+- Pass them to `Router::call_with_resources(...)` or `Router::call_route_with_resources(...)`.
 
 ### RouterBuilder
 - `append(name, handler_fn)`: Generic add.
@@ -70,11 +79,20 @@ Type-safe container for shared state.
 - `get<T>()`: Returns `Option<T>`. Looks in overlay then base.
 - `is_empty()`: Returns true when both base and overlay resource stores are empty.
 
+Terminology notes:
+- Base resources are long-lived router resources.
+- Overlay resources are temporary per-call resources.
+- `get<T>()` prefers the overlay value when both layers contain `T`.
+
 ### ResourcesBuilder
 - `append(T)`: Append a resource and return the builder.
 - `append_mut(T)`: Append a resource without consuming the builder.
 - `get<T>()`: Read a typed resource from the builder.
 - `build()`: Produce `Resources`.
+
+Common overlay pattern:
+- `let resources = Resources::builder().append(my_value).build();`
+- Use that value as the additional resources argument for router calls with overlay support.
 
 ## Traits for Handlers
 
