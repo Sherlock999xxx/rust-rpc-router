@@ -18,6 +18,15 @@ impl ResourcesBuilder {
 		self
 	}
 
+	/// Extends this builder by consuming another builder.
+	///
+	/// If a resource of the same type exists in both builders, the resource from
+	/// `other_builder` overwrites the one already stored in `self`.
+	pub fn extend(mut self, other_builder: ResourcesBuilder) -> Self {
+		self.resources_inner.extend(other_builder.resources_inner);
+		self
+	}
+
 	/// Convenient append method to avoid moving out value.
 	/// Use `.append(val)` if not sure.
 	pub fn append_mut<T: Clone + Send + Sync + 'static>(&mut self, val: T) {

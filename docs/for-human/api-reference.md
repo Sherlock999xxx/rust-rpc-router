@@ -271,6 +271,7 @@ Mutable builder for constructing `Resources`.
 
 - `append(T)`
 - `append_mut(T)`
+- `extend(other_builder)`
 - `get<T>()`
 - `build()`
 
@@ -283,6 +284,30 @@ let call_resources = Resources::builder()
     .append("request-local value".to_string())
     .build();
 ```
+
+Builder composition pattern:
+
+```rust
+use rpc_router::Resources;
+
+let shared_resources = Resources::builder()
+    .append("shared".to_string());
+
+let request_resources = Resources::builder()
+    .append(42_u32);
+
+let combined_resources = shared_resources
+    .extend(request_resources)
+    .build();
+
+let _ = combined_resources;
+```
+
+Behavior notes:
+
+- `extend` consumes the other `ResourcesBuilder` and merges its stored resource values into the current builder.
+- If both builders contain the same resource type, the value from the appended builder passed to `extend` wins.
+- `append` remains the ergonomic consuming builder method, while `append_mut` is useful when you want to keep using the same mutable builder variable.
 
 ## Router Call Results
 

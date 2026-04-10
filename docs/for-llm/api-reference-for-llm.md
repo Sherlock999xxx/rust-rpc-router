@@ -87,12 +87,18 @@ Terminology notes:
 ### ResourcesBuilder
 - `append(T)`: Append a resource and return the builder.
 - `append_mut(T)`: Append a resource without consuming the builder.
+- `extend(ResourcesBuilder)`: Merge another builder into this one and return the builder.
 - `get<T>()`: Read a typed resource from the builder.
 - `build()`: Produce `Resources`.
 
 Common overlay pattern:
 - `let resources = Resources::builder().append(my_value).build();`
 - Use that value as the additional resources argument for router calls with overlay support.
+
+Composition notes:
+- `extend(...)` consumes the other builder and merges its resources into the current one.
+- If both builders contain the same type, the value from the builder passed to `extend(...)` overwrites the current builder's value.
+- `append` is the consuming chain-friendly method, while `append_mut` supports in-place mutation of an existing builder variable.
 
 ## Traits for Handlers
 
